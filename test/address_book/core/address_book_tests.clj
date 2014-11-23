@@ -8,6 +8,8 @@
 
 (def test-db (database :test))
 
+(def test-user {:name "Test User" :phone "(333) 333-3333" :email "test3@example.com"})
+
 (facts "Example GET and POST tests"
   (with-state-changes [(before :facts (query/create-contacts-table-if-not-exists!
                                         {} {:connection test-db})
@@ -19,10 +21,7 @@
                                 :phone "(321) 222-2222"
                                 :email "test@example.com"}
                             {:connection test-db})
-      (query/insert-contact<! {:name "Test"
-                                :phone "(555) 222-2222"
-                                :email "test1@example.com"}
-                            {:connection test-db})
+      (query/insert-contact<! test-user {:connection test-db})
       (let [response (app (mock/request :get "/"))]
         (:status response) => 200
         (:body response) => (contains "<div class=\"column-1\">Sean Kay</div>"))))
@@ -37,4 +36,22 @@
                                          :phone "(555) 253-3333"
                                          :email "test@example.com"}))]
         (:status response) => 302
-        (count (query/all-contacts {} {:connection test-db})) => 1)))))
+        (count (query/all-contacts {} {:connection test-db})) => 1)))
+  (fact "Test UPDATE a post request to /edit/<contat-id> updates desired contact info"
+    (with-redefs [db test-db]
+      (query/insert-contact<! test-user {:connection test-db})
+      (let [response (app (mock/request :post "/edit/1" {:id "1" :name "Tester"
+                                                         :phone "(444) 444-4444"
+                                                         :email "test5@example.com"}))]
+        (:status response) => 302
+        (count (query/all-contacts {} {:connection test-db})) => 1
+        (first (query/all-contacts {} {:connection test-db})) => {:id 1
+                                                                  :name "Tester"
+                                                                  :phone "(444) 444-4444"
+                                                                  :email "test5@example.com"})))
+  (fact "Test DELETED a post to /delete/<contact-id> deletes a desired contact from database"
+    (with-redefs [db test-db]
+      (query/insert-contact<! test-user {:connection test-db})
+      (count (query/all-contacts {} {:connection test-db})) => 1
+      (let [response (app (mock/request :post "/delete/1" {:id 1}))]
+        (count (query/all-contacts {} {:connection test-db})) => 0)))))
