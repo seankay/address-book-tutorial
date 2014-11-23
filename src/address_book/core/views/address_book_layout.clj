@@ -1,3 +1,11 @@
-(ns address-book.core.views.address-book-layout)
+(ns address-book.core.views.address-book-layout
+  (:require [hiccup.page :refer [html5 include-css]]))
 
-(def common-layout "")
+(defn common-layout [& body]
+  (html5
+    [:head
+     [:title "Address Book"]
+     (include-css "/css/address_book.css")]
+    [:body
+     [:h1#content-title "Address Book"]
+     body]))
